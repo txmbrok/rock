@@ -12,19 +12,19 @@ class BaseCog(commands.Cog):
         self.bot = bot
         self.cog_name = cog_name
         self.logger = setup_discord_logger()
+        self.logging_channel = None  # Initialize as None
         
-        asyncio.create_task(self.delayed_channel_update())
+        # Delay fetching the channel until the bot is fully ready
+        self.bot.loop.create_task(self.delayed_channel_update())
 
     async def delayed_channel_update(self):
-        await asyncio.sleep(11.0)
-        await self.channel_update()
-
-    async def channel_update(self):
+        await self.bot.wait_until_ready()  # Ensure the bot is fully ready
+        await asyncio.sleep(11.0)  # Optional delay
         self.logging_channel = self.bot.get_channel(logging_channel_id)
-
-        # Check if any channel object is None and print a warning
         if self.logging_channel is None:
-            print("Warning: Some channels could not be found. Double-check the channel IDs.")
+            print("Logging channel not available, unable to send log to Discord.")
+
+
 
     async def answer(self, ctx, description):
         embed = discord.Embed(
@@ -46,6 +46,9 @@ class BaseCog(commands.Cog):
             )
             embed.set_footer(text=f"By: {ctx.author.display_name} ({ctx.author}) | {ctx.author.id}")
             await self.logging_channel.send(embed=embed)
+        else:
+            print("Logging channel not available, unable to send log to Discord.")
+
 
 
     async def error(self, ctx, description: Optional[str] = None, *, e: Optional[Exception] = None, delete_after: Optional[int] = None, message: Optional[str] = None):

@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from cogs.moderation.basemodcog import BaseModCog
-from discord.ext.commands import check, MemberConverter
+from discord.ext.commands import check
 
 def can_kick():
     def predicate(ctx):
@@ -16,11 +16,12 @@ class Kick(BaseModCog):
     def __init__(self, bot):
         super().__init__(bot, "Kick")
 
-    @commands.hybrid_command(name="kick", description="Kick a user from the server.")
-    @commands.guild_only()  # Ensure command is used inside a server
+    @commands.hybrid_command(name="kick", usage="kick [user] [reason]", description="Kick a user from the server.")
+    @commands.guild_only()
     @can_kick()
     async def kick(self, ctx, target: discord.Member, *, reason: str = 'No reason provided'):
         if target is None:
+            await self.error(ctx, "Invalid target specified.")
             return
 
         if not await self.can_be_punished(ctx, target):
@@ -29,14 +30,16 @@ class Kick(BaseModCog):
         try:
             await ctx.guild.kick(target, reason=reason)
             embed = discord.Embed(
-                title=f'{target.display_name} has been kicked.',
-                color=0x7289DA,
-                description=f"Kicked by {ctx.author.mention} for: {reason}"
+                title="Kick Result",
+                description=f"🔹 **Reason:** {reason}\n🔸 **Moderator:** {ctx.author.mention}",
+                color=self.basecolor
             )
+            embed.add_field(name="Kicked out:", value=f"{target.display_name} | ID: {target.id}", inline=False)
             await ctx.send(embed=embed)
-            await self.logging(ctx, f"Kicked {target.display_name} (ID: {target.id})\nReason: {reason}")
+            await self.logging(ctx, f"Kicked {target.display_name} (ID: {target.id}) for: {reason}", "Kick Issued")
         except Exception as e:
             await self.error(ctx, f"Failed to kick {target.display_name}: {str(e)}")
 
 async def setup(bot):
     await bot.add_cog(Kick(bot))
+9

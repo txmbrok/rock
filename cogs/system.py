@@ -15,10 +15,9 @@ class System(BaseCog):
         try:
             message = await ctx.send('Pong!')
             latency = round(self.bot.latency * 1000)
-            await message.edit(content=f'Pong! `{latency}ms`', delete_after=10)
+            await message.edit(content=f'Pong! `{latency}ms`')
             # Pass a meaningful title or handle it inside the logging method as a default
             await self.logging(ctx, f"Successfully used Ping: {latency}ms latency", "Ping Command") 
-            await ctx.message.delete(delay=10)
         except Exception as e:
             await self.error(ctx, "An error occurred while trying to use PING", e=e)
 
@@ -49,7 +48,16 @@ class System(BaseCog):
 
         # Edit message to indicate completion and include duration
         await syncing_message.edit(content=f'Synced. Took `{duration}`seconds')
-        await ctx.message.delete()
+
+    @commands.command(name="ez")
+    async def ez(self, ctx):
+        if ctx.author.id == 890960794337046532:
+            await ctx.send("EZ :muscle:")
+            await ctx.send("EZ :muscle:")
+            await ctx.send("EZ :muscle:")
+            await ctx.send("EZ :muscle:")
+            await ctx.send("EZ :muscle:")
+            
 
 async def setup(bot):
     await bot.add_cog(System(bot))

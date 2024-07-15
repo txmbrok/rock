@@ -16,46 +16,44 @@ class Bans(BaseModCog):
     def __init__(self, bot):
         super().__init__(bot, "Bans")
 
-
-    @commands.hybrid_command(name="ban", usage="ban [user] [reason]", description="Ban a user from the server.")
+    @commands.hybrid_command(name="ban", usage="ban [user] [reason]", description="Permanently ban a user from the server.")
     @can_ban()
-    async def ban(self, ctx, target: discord.Member, *, reason: str = 'No reason given'):
+    async def ban(self, ctx, target: discord.Member, *, reason: str = 'No reason provided'):
         if target is None:
-            await self.error(ctx, "Invalid target.")
+            await self.error(ctx, "Invalid target specified.")
             return
         
         if not await self.can_be_punished(ctx, target):
             return
-        
-        base_reason = f'Banned by {ctx.author.name}.'
-        acc_reason = reason
-        if reason == 'No reason given':
-            acc_reason = base_reason
 
         try:
-            await ctx.guild.ban(target, reason=acc_reason)
-
+            await ctx.guild.ban(target, reason=reason)
             embed = discord.Embed(
-                title=f'{target} successfully banned.',
-                color=self.basecolor,
-                description=f"Banned by {ctx.author.mention}. Reason: {reason}"
+                title="Ban Result",
+                description=f"🔹 **Reason:** {reason}\n🔸 **Moderator:** {ctx.author.mention}",
+                color=self.basecolor
             )
+            embed.add_field(name="Banned:", value=f"{target.display_name} | ID: {target.id}", inline=False)
             await ctx.send(embed=embed)
-            await self.logging(ctx, f"Successfully banned {target.id}\nReason: {reason}")
+            await self.logging(ctx, f"Banned {target.display_name} (ID: {target.id}) for: {reason}", "Ban Issued")
         except Exception as e:
-            await self.error(ctx, e=e)
+            await self.error(ctx, "Failed to ban user.", e=e)
 
-
-    @commands.hybrid_command(name="unban", usage="unban [user]", description="Unban a user from the server.")
+    @commands.hybrid_command(name="unban", usage="unban [user_id]", description="Unban a user from the server.")
     @can_ban()
     async def unban(self, ctx, target_id: int):
         try:
-            await ctx.guild.unban(discord.Object(target_id))
-            await self.answer(ctx, f"Successfully unbanned {target_id} from {ctx.guild}")
-            await self.logging(ctx, f"Successfully unbanned `{target_id}`")
+            user = discord.Object(id=target_id)
+            await ctx.guild.unban(user)
+            embed = discord.Embed(
+                title="Unban Result",
+                description=f"Successfully unbanned ID: {target_id}",
+                color=self.basecolor
+            )
+            await ctx.send(embed=embed)
+            await self.logging(ctx, f"Successfully unbanned {target_id}", "Unban Issued")
         except Exception as e:
-            await self.error(ctx, f"Error occured while trying to unban `{target_id}`", e=e)
-
+            await self.error(ctx, "Failed to unban user.", e=e)
 
 async def setup(bot):
     await bot.add_cog(Bans(bot))

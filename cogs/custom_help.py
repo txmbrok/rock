@@ -77,7 +77,7 @@ class Help(commands.Cog):
             embed.add_field(name=f"**{cog_name}**", value="\n".join(cmd.name for cmd in cog_commands), inline=False)
         await ctx.send(embed=embed)
 
-    @commands.hybrid_command(name="help", description="Shows help information for commands.")
+    @commands.hybrid_command(name="commands", description="Shows help information for commands.")
     async def help_command(self, ctx, *, command_or_category: str = 'fortnite'):
         if command_or_category == 'fortnite' or None:
             await self.send_help_embed(ctx)

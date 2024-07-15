@@ -2,10 +2,10 @@ import discord
 from discord.ext import commands
 from cogs.moderation.basemodcog import BaseModCog
 from humanfriendly import parse_timespan, InvalidTimespan
-from datetime import timedelta
+from datetime import timedelta, datetime
 from discord.ext.commands import check
 
-def can_manage_messages():
+def can_timeout():
     def predicate(ctx):
         if not isinstance(ctx.author, discord.Member):
             return False
@@ -18,14 +18,18 @@ class Mutes(BaseModCog):
     def __init__(self, bot):
         super().__init__(bot, "Mutes")
 
-    @commands.hybrid_command(name="mute", usage="mute [user] [duration] [reason]", description="Temporarily mute a user in the server.")
-    @can_manage_messages()
-    async def mute(self, ctx, target: discord.Member, duration: str, *, reason: str = 'No reason provided'):
+    @commands.hybrid_command(name="timeout", aliases=["mute", "timeout_add"], usage="mute [user] [duration] [reason]", description="Temporarily mute a user in the server.")
+    @can_timeout()
+    async def mute(self, ctx, target: discord.Member, duration: str, *, reason: str = 'No reason.'):
         if target is None:
             await self.error(ctx, "Invalid target.")
             return
         
         if not await self.can_be_punished(ctx, target):
+            return
+        
+        if target.is_timed_out():
+            await self.error(ctx, f"{target.display_name} is currently timeouted.")
             return
 
         try:
@@ -33,19 +37,20 @@ class Mutes(BaseModCog):
             timeout_until = discord.utils.utcnow() + timedelta(seconds=real_duration)
             await target.edit(timed_out_until=timeout_until, reason=reason)
             embed = discord.Embed(
-                title=f'{target} successfully muted for {duration}.',
+                title="Timeout",
                 color=self.basecolor,
-                description=f"Muted by {ctx.author.mention} for: {reason}"
+                description=f"**Reason:** {reason}\n**Moderator:** {ctx.author.mention}\n**Duration:** `{duration}`"
             )
+            embed.add_field(name="Timed out:", value=f"    {target.name} | `{target.id}`" )
             await ctx.send(embed=embed)
-            await self.logging(ctx, f"Successfully muted {target.id} for {duration}\nReason: {reason}")
+            await self.mod_log(ctx, "Timeout", target, reason)
         except InvalidTimespan:
-            await self.error(ctx, f"Invalid duration provided: {duration}")
+            await self.error(ctx, f"Invalid duration provided: `{duration}`")
         except Exception as e:
             await self.error(ctx, e=e)
 
-    @commands.hybrid_command(name="unmute", usage="unmute [user]", description="Unmute a user in the server.")
-    @can_manage_messages()
+    @commands.hybrid_command(name="untimeout", aliases=["unmute", "timeout_remove"], usage="unmute [user]", description="Unmute a user in the server.")
+    @can_timeout()
     async def unmute(self, ctx, target: discord.Member):
         if target is None:
             await self.error(ctx, "Invalid target.")
@@ -56,14 +61,14 @@ class Mutes(BaseModCog):
             return
 
         try:
-            await target.edit(timed_out_until=None, reason="Unmute issued by " + str(ctx.author))
+            await target.edit(timed_out_until=None, reason="Timeout removed by" + str(ctx.author))
             embed = discord.Embed(
-                title=f'{target} successfully unmuted.',
+                title="Unmute",
                 color=self.basecolor,
-                description=f"Unmuted by {ctx.author.mention}"
+                description=f"**Moderator:** {ctx.author.mention}\n**Target:** {target.name} | `{target.id}`"
             )
             await ctx.send(embed=embed)
-            await self.logging(ctx, f"Successfully unmuted {target.id}")
+            await self.mod_log(ctx, "Timeout removed", target, "Timeout removed by " + str(ctx.author))
         except Exception as e:
             await self.error(ctx, e=e)
 
